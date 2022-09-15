@@ -1,116 +1,131 @@
 ﻿using System;
 
-using JogoVelha.Entidades;
+using TicTacToe.Entities;
 
-namespace JogoVelha
+namespace TicTacToe
 {
 	public class Program
-	{ 
-		// TODO: Estruturar melhor o projeto para publicar no GitHub
+	{
+
+		public static Game Game { get; set; } = null!;
+
+		public static Player ActualPlayer { get; set; } = null!;
 
 		public static void Main()
 		{
-			string[] simbolos = { "O", "X" };
+			ConsoleKeyInfo runningGame = new('Y', ConsoleKey.Y, false, false, false);
 
-			int simboloJogadorInicial;
+			Console.WriteLine("WELCOME TO THE TIC-TAC-TOE GAME\n");
 
-			Jogador jogadorAtual = null!;
-			int jogadorAtualPosicao;
+			Console.Write("X or O? ");
 
-			string jogadaTexto = null!;
-			bool jogadaStatus;
+			ConsoleKeyInfo firstPlayerSymbol = Console.ReadKey(true);
+			firstPlayerSymbol = (firstPlayerSymbol.KeyChar == 'O' || firstPlayerSymbol.KeyChar == 'X') ? firstPlayerSymbol : new ConsoleKeyInfo('O', ConsoleKey.O, false, false, false);
 
-			int continuar = 1;
+			Game = new(new("Player 1", firstPlayerSymbol.KeyChar.ToString()), new("Player 2", (firstPlayerSymbol.KeyChar == 'O') ? "X" : "O"));
 
-			Console.WriteLine("Bem vindo ao Jogo da Velha");
-
-			Console.WriteLine("Informe o símbolo do jogador 1:");
-
-			for (int item = 0; item < simbolos.Length; item++)
+			while (runningGame.Key == ConsoleKey.Y)
 			{
-				Console.WriteLine($"\t[{item + 1}] {simbolos[item]}");
-			}
+				Game.StartGame();
 
-			Console.Write("Informe a resposta: ");
-			simboloJogadorInicial = int.Parse(Console.ReadLine()!) - 1;
-			simboloJogadorInicial = (simboloJogadorInicial > 0 && simboloJogadorInicial <= 2) ? simboloJogadorInicial : 0;
-
-			Tabuleiro jogo = new(new(simbolos[simboloJogadorInicial]), new(simbolos[(simboloJogadorInicial == 1) ? 0 : 1]));
-
-			while (continuar == 1)
-			{
-				jogo.IniciarPartida();
-				
 				Console.Clear();
 
-				Console.WriteLine($"\nPONTUAÇÃO:" +
-					$"\nJogador 1: {jogo.Jogadores[0].Pontuacao}" +
-					$"\nJogador 2: {jogo.Jogadores[1].Pontuacao}\n");
+				Console.WriteLine(ShowScore());
 
-				Console.WriteLine("Pressione QUALQUER TECLA para começar");
-				Console.WriteLine("Dica: Quando for mencionar a posição X e Y do tabuleiro, separe as duas coordenadas pelo espaço");
-				Console.WriteLine("Dica: As posições são do tipo linha coluna");
-				Console.ReadKey();
+				Console.Write("PRESS ANY KEY TO START");
 
-				while (jogo.Partida)
-				{
-					Console.Clear();
+				Console.ReadKey(true);
 
-					Console.Write(jogo);
+				Run();
+				EndingGame();
 
-					jogadorAtualPosicao = jogo.JogadorAtual;
+				Console.Write("KEEP RUNNING? (Y/ANY) ");
 
-					jogadaStatus = false;
-
-					jogadorAtual = jogo.Jogadores[jogadorAtualPosicao];
-
-					while (!jogadaStatus)
-					{
-						Console.Write($"Agora é a vez do Jogador {jogadorAtualPosicao + 1}: ");
-						jogadaTexto = Console.ReadLine()!;
-
-						if (jogadaTexto.Contains(' '))
-						{
-							jogadaStatus = jogo.FazerJogada(jogadorAtual, jogadaTexto);
-						}
-					}
-
-					jogo.Partida = !jogo.ChecarGanhador(jogadorAtual);
-
-					if (jogo.Partida)
-					{
-						jogo.Partida = !jogo.ChecarVelha();
-						jogadorAtual = null!;
-					}
-
-				}
-
-				if (jogadorAtual != null!)
-				{
-					Console.WriteLine(jogadorAtual);
-					jogadorAtual.AumentarPontuacao();
-				}
-				else
-				{
-					Console.WriteLine("Resultado do jogo: Empate");
-				}
-
-				Console.Write("Deseja continuar (1 para sim; 0 para não)? ");
-				continuar = int.Parse(Console.ReadLine()!);
-				continuar = (continuar == 0 || continuar == 1) ? continuar : 0;
-
+				runningGame = Console.ReadKey();
 			}
 
 			Console.Clear();
-
-			Console.WriteLine($"\nPONTUAÇÃO FINAL:" +
-					$"\nJogador 1: {jogo.Jogadores[0].Pontuacao}" +
-					$"\nJogador 2: {jogo.Jogadores[1].Pontuacao}\n");
+			Console.WriteLine(ShowScore(true));
 
 		}
 
-			
+		public static void Run()
+		{
+			int actualPlayerPosition;
+			bool moveMade;
 
+			while (Game.Running)
+			{
+				Console.Clear();
+
+				Console.Write($"\n{Game}\n");
+
+				actualPlayerPosition = Game.ActualPlayer;
+
+				moveMade = false;
+
+				ActualPlayer = Game.Players[actualPlayerPosition];
+
+				while (!moveMade)
+				{
+					Console.WriteLine($"NOW IT'S THE {ActualPlayer.Name}({ActualPlayer.Symbol}) TURN: ");
+
+					Console.Write("LINE: ");
+					ConsoleKeyInfo selectedLine = Console.ReadKey(true);
+					Console.WriteLine(selectedLine.KeyChar);
+
+					Console.Write("COLUMN: ");
+					ConsoleKeyInfo selectedColumn = Console.ReadKey(true);
+					Console.WriteLine(selectedColumn.KeyChar);
+
+					try
+					{
+						moveMade = Game.Move(ActualPlayer, int.Parse(selectedLine.KeyChar.ToString()), int.Parse(selectedColumn.KeyChar.ToString()));
+					}
+					catch (FormatException)
+					{
+						moveMade = false;
+					}
+
+					Console.WriteLine();
+				}
+
+				Game.Running = !Game.CheckWinner(ActualPlayer);
+
+				if (Game.Running)
+				{
+					Game.Running = !Game.CheckHash();
+					ActualPlayer = null!;
+				}
+			}
+		}
+
+		public static void EndingGame()
+		{
+
+			Console.Clear();
+			Console.Write($"\n{Game}\n");
+
+			if (ActualPlayer != null)
+			{
+				Console.WriteLine($"GAME RESULT: {ActualPlayer.Symbol} WON THE GAME");
+				ActualPlayer.Score++;
+			}
+			else
+			{
+				Console.WriteLine("GAME RESULT: DRAW");
+			}
+
+			Console.WriteLine();
+
+		}
+
+		public static string ShowScore(bool final = false) // Parece que eu consigo adicionar um valor padrão para o argumento
+		{
+			return $"\n{((final) ? "FINAL " : "")}SCORE:" +
+				$"\nPlayer 1({Game.Players[0].Symbol}): {Game.Players[0].Score}" +
+				$"\nPlayer 2({Game.Players[1].Symbol}): {Game.Players[1].Score}{((!final) ? "\n" : "")}";
+		}
 
 	}
 }
